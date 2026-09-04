@@ -1,0 +1,2263 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Репетитор - Управление учениками</title>
+
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f2f2f7;
+            padding: 20px;
+            max-width: 500px;
+            margin: 0 auto;
+            padding-bottom: 40px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        .student-name {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1c1c1e;
+            cursor: pointer;
+        }
+        .student-name:hover { color: #007AFF; }
+        .badge {
+            font-size: 13px;
+            background: #e5e5ea;
+            padding: 4px 12px;
+            border-radius: 20px;
+            color: #3a3a3c;
+        }
+        .badge-active { background: #34c759; color: white; }
+        .badge-warning { background: #ff9500; color: white; }
+        .badge-danger { background: #ff3b30; color: white; }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #007AFF;
+            color: white;
+            width: 100%;
+            margin-top: 8px;
+        }
+        .btn:hover { opacity: 0.9; transform: scale(0.98); }
+        .btn-danger { background: #ff3b30; }
+        .btn-success { background: #34c759; }
+        .btn-warning { background: #ff9500; }
+        .btn-secondary { background: #e5e5ea; color: #1c1c1e; }
+        .btn-small { padding: 6px 14px; font-size: 14px; width: auto; margin: 4px; }
+        .btn-add-day {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #34c759;
+            color: white;
+            min-width: 36px;
+        }
+        .btn-add-day:hover { opacity: 0.8; transform: scale(0.95); }
+        .btn-remove-day {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #ff3b30;
+            color: white;
+            min-width: 36px;
+        }
+        .btn-remove-day:hover { opacity: 0.8; transform: scale(0.95); }
+        .btn-add-slot {
+            padding: 4px 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #34c759;
+            color: white;
+        }
+        .btn-add-slot:hover { opacity: 0.8; }
+        .btn-remove-slot {
+            padding: 4px 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #ff3b30;
+            color: white;
+        }
+        .btn-remove-slot:hover { opacity: 0.8; }
+        .input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d1d6;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 10px;
+            background: white;
+        }
+        .input:focus {
+            outline: none;
+            border-color: #007AFF;
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+        }
+        .input-small {
+            width: 80px;
+            padding: 8px 12px;
+            border: 1px solid #d1d1d6;
+            border-radius: 10px;
+            font-size: 16px;
+            background: white;
+            text-align: center;
+        }
+        .input-small:focus {
+            outline: none;
+            border-color: #007AFF;
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+        }
+        .textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d1d6;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 10px;
+            background: white;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
+        }
+        .textarea:focus {
+            outline: none;
+            border-color: #007AFF;
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+        }
+        .label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #3a3a3c;
+            margin-bottom: 4px;
+            display: block;
+        }
+        .day-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 12px 0;
+        }
+        .day-chip-active {
+            background: #007AFF;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: none;
+            font-size: 14px;
+            cursor: default;
+        }
+        .count-selector {
+            background: #f2f2f7;
+            border-radius: 12px;
+            padding: 16px;
+            margin: 12px 0;
+        }
+        .time-slots {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin: 8px 0;
+        }
+        .time-slot-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e5e5ea;
+        }
+        .time-slot-item select {
+            flex: 1;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #d1d1d6;
+            font-size: 14px;
+            background: white;
+        }
+        .count-btn-cancel {
+            background: #ff3b30;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 6px;
+        }
+        .lesson-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #f2f2f7;
+            cursor: pointer;
+            transition: background 0.2s;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        .lesson-item:hover {
+            background: #f8f8fc;
+            margin: 0 -8px;
+            padding: 10px 8px;
+            border-radius: 8px;
+        }
+        .lesson-item:last-child { border-bottom: none; }
+        .lesson-date {
+            font-size: 15px;
+            color: #1c1c1e;
+            flex: 1;
+            min-width: 120px;
+        }
+        .lesson-status-done {
+            color: #34c759;
+            text-decoration: line-through;
+        }
+        .lesson-status-canceled {
+            color: #ff3b30;
+            text-decoration: line-through;
+        }
+        .lesson-status-rescheduled {
+            color: #ff9500;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.2s ease-in;
+            padding: 20px;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 400px;
+            width: 100%;
+            animation: slideUp 0.3s ease-out;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            text-align: center;
+            color: #1c1c1e;
+        }
+        .modal-subtitle {
+            font-size: 14px;
+            color: #8e8e93;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .modal-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .modal-btn {
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+        .modal-btn:hover { transform: scale(0.98); opacity: 0.9; }
+        .modal-btn-done { background: #34c759; color: white; }
+        .modal-btn-reschedule { background: #ff9500; color: white; }
+        .modal-btn-cancel { background: #ff3b30; color: white; }
+        .modal-btn-close { background: #e5e5ea; color: #1c1c1e; }
+        .modal-btn-scheduled { background: #007AFF; color: white; }
+        .modal-btn-save { background: #34c759; color: white; }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1c1c1e;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .subtitle {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1c1c1e;
+            margin: 16px 0 8px 0;
+        }
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .mt-8 { margin-top: 8px; }
+        .text-muted { color: #8e8e93; font-size: 14px; }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        .info-text { 
+            font-size: 13px; 
+            color: #8e8e93; 
+            background: #f2f2f7; 
+            padding: 8px 12px; 
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+        .day-schedule-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 4px 0;
+            padding: 6px 10px;
+            background: #f8f8fc;
+            border-radius: 8px;
+            justify-content: space-between;
+        }
+        .day-schedule-item .day-name {
+            font-weight: 600;
+            min-width: 30px;
+        }
+        .day-schedule-item .day-details {
+            flex: 1;
+            font-size: 13px;
+            color: #3a3a3c;
+        }
+        .day-schedule-item .day-actions {
+            display: flex;
+            gap: 4px;
+        }
+        .loading-spinner {
+            text-align: center;
+            padding: 20px;
+            color: #8e8e93;
+        }
+        .week-info {
+            text-align: center;
+            font-size: 14px;
+            color: #8e8e93;
+            padding: 8px;
+            background: #f8f8fc;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .slot-times {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 4px;
+        }
+        .slot-time-tag {
+            background: #e5e5ea;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #3a3a3c;
+        }
+        /* ===== АБОНЕМЕНТ ===== */
+        .subscription-box {
+            background: #f8f8fc;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .subscription-box .label {
+            margin-bottom: 0;
+            font-size: 13px;
+            color: #8e8e93;
+        }
+        .subscription-box .count {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1c1c1e;
+        }
+        .subscription-box .count.warning {
+            color: #ff9500;
+        }
+        .subscription-box .count.danger {
+            color: #ff3b30;
+        }
+        .subscription-box .count.good {
+            color: #34c759;
+        }
+        .subscription-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .subscription-actions .btn {
+            width: auto;
+            margin-top: 0;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+        /* ===== КАЛЕНДАРЬ ===== */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            margin-top: 8px;
+        }
+        .calendar-day-header {
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: #8e8e93;
+            padding: 4px 0;
+        }
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: #f8f8fc;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1c1c1e;
+            transition: all 0.2s;
+            position: relative;
+            min-height: 40px;
+            cursor: default;
+        }
+        .calendar-day.empty {
+            background: transparent;
+        }
+        .calendar-day.has-lessons {
+            background: #007AFF;
+            color: white;
+            cursor: pointer;
+        }
+        .calendar-day.has-lessons:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+        }
+        .calendar-day.has-note {
+            border: 2px solid #ff9500;
+        }
+        .calendar-day.today {
+            border: 2px solid #007AFF;
+        }
+        .calendar-day.today.has-note {
+            border: 2px solid #ff9500;
+        }
+        .calendar-day .day-number {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .calendar-day .lesson-count {
+            font-size: 9px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            padding: 0 6px;
+            margin-top: 1px;
+        }
+        .calendar-day .note-indicator {
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            font-size: 10px;
+        }
+        .calendar-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .calendar-nav button {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px 12px;
+            border-radius: 8px;
+            color: #007AFF;
+            font-weight: 600;
+        }
+        .calendar-nav button:hover {
+            background: #e5e5ea;
+        }
+        .calendar-nav .month-label {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1c1c1e;
+        }
+        .calendar-legend {
+            display: flex;
+            gap: 16px;
+            margin-top: 8px;
+            font-size: 12px;
+            color: #8e8e93;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .calendar-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .calendar-legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 4px;
+            background: #007AFF;
+        }
+        .calendar-legend-dot.today-dot {
+            border: 2px solid #007AFF;
+            background: white;
+        }
+        .calendar-legend-dot.note-dot {
+            background: #ff9500;
+        }
+        .calendar-tooltip {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1c1c1e;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 10;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        .calendar-day.has-lessons:hover .calendar-tooltip {
+            display: block;
+        }
+        /* ===== МОДАЛКА ДНЯ ===== */
+        .day-modal-lessons {
+            margin: 12px 0;
+        }
+        .day-modal-lesson-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f2f2f7;
+            font-size: 14px;
+        }
+        .day-modal-lesson-item:last-child {
+            border-bottom: none;
+        }
+        .day-modal-note {
+            margin: 12px 0;
+        }
+        .day-modal-note .label {
+            margin-bottom: 6px;
+        }
+        .day-modal-note .note-text {
+            background: #f8f8fc;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .btn-close-modal {
+            background: #e5e5ea;
+            color: #1c1c1e;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 8px;
+        }
+        .btn-close-modal:hover { opacity: 0.8; }
+        @media (max-width: 500px) {
+            body { padding: 12px; }
+            .card { padding: 12px; }
+            .student-name { font-size: 18px; }
+            .modal-content { padding: 16px; }
+            .time-slot-item { flex-wrap: wrap; }
+            .calendar-day { min-height: 36px; font-size: 12px; }
+            .subscription-box { flex-direction: column; align-items: stretch; text-align: center; }
+            .subscription-actions { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // ============================================================
+        // 1. ПОДКЛЮЧЕНИЕ К SUPABASE
+        // ============================================================
+        var SUPABASE_URL = 'https://bxbfmuvtfvespaavetnh.supabase.co';
+        var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ4YmZtdXZ0ZnZlc3BhYXZldG5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzODk1MjksImV4cCI6MjEwMzk2NTUyOX0.nfLqq4-XR6p5P-3SQw6yBtimfFqJWsxsj9Pk-sNzjOs';
+        var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // ============================================================
+        // 2. КОНСТАНТЫ
+        // ============================================================
+        var DAY_NAMES = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+        var DAY_NAMES_SHORT = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+        var TUTOR_VK_ID = 88493864;
+        var TIME_SLOTS = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00'];
+        var VK_TOKEN = 'vk1.a.SFrwZfMYhMwAiXfkxE3H5H8nWMKRebYlE0smCHC7CVn2O6BWUOfUJ5CnZER8hNHLUaUMnVosmzR6wrg3aM3BPM7OtkLX9S-pHcEhB9k-QSyR9C9VNqKEDTBAM3cYsnqhe6g1f_5lq4INoTHRbKM0jKbXkeUr3htuQOV3hc7LQVwDixV1JXzFFzdbDgITRq55lbwUetxUf2YVH4vNMAWuJQ';
+
+        var LESSON_STATUS = {
+            SCHEDULED: 'scheduled',
+            DONE: 'done',
+            CANCELED: 'canceled',
+            RESCHEDULED: 'rescheduled'
+        };
+
+        // ============================================================
+        // 3. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+        // ============================================================
+
+        function formatDate(dateString) {
+            var parts = dateString.split('-');
+            return parts[2] + '-' + parts[1] + '-' + parts[0];
+        }
+
+        function lessonToDate(lesson) {
+            return new Date(lesson.date + 'T' + lesson.time + ':00');
+        }
+
+        function getStatusText(status) {
+            if (status === LESSON_STATUS.DONE) return '✅ Проведен';
+            if (status === LESSON_STATUS.CANCELED) return '❌ Отменен';
+            if (status === LESSON_STATUS.RESCHEDULED) return '⏳ Перенесен';
+            return '📅 Запланирован';
+        }
+
+        function generateLessons(schedule, weeksAhead) {
+            var lessons = [];
+            var today = new Date();
+            
+            var currentDay = today.getDay();
+            var diff = today.getDate() - currentDay + (currentDay === 0 ? -6 : 1);
+            var monday = new Date(today);
+            monday.setDate(diff);
+            monday.setHours(0, 0, 0, 0);
+            
+            var totalDays = 7 * weeksAhead;
+
+            for (var i = 0; i < totalDays; i++) {
+                var d = new Date(monday);
+                d.setDate(monday.getDate() + i);
+                var dayOfWeek = d.getDay();
+
+                var match = null;
+                for (var j = 0; j < schedule.length; j++) {
+                    if (schedule[j].day === dayOfWeek) {
+                        match = schedule[j];
+                        break;
+                    }
+                }
+                if (!match) continue;
+
+                var dateStr = d.toISOString().slice(0, 10);
+                var times = match.times || [];
+
+                for (var c = 0; c < times.length; c++) {
+                    var timeStr = times[c];
+                    var lessonDate = new Date(dateStr + 'T' + timeStr + ':00');
+                    
+                    if (lessonDate.getTime() >= today.getTime() - 24*60*60*1000) {
+                        lessons.push({
+                            id: dateStr + '-' + match.day + '-' + c,
+                            date: dateStr,
+                            time: timeStr
+                        });
+                    }
+                }
+            }
+
+            lessons.sort(function(a, b) {
+                if (a.date === b.date) {
+                    return a.time.localeCompare(b.time);
+                }
+                return a.date.localeCompare(b.date);
+            });
+            return lessons;
+        }
+
+        // ============================================================
+        // ОТПРАВКА СООБЩЕНИЙ В ВК
+        // ============================================================
+        function sendVkMessage(userId, message) {
+            if (!userId) {
+                console.warn('⚠️ Нет VK ID для отправки');
+                return;
+            }
+
+            var userIdNum = parseInt(userId);
+            if (isNaN(userIdNum)) {
+                console.warn('⚠️ Некорректный VK ID:', userId);
+                return;
+            }
+
+            fetch('https://api.vk.com/method/messages.send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    user_id: userIdNum,
+                    message: message,
+                    access_token: VK_TOKEN,
+                    v: '5.131',
+                    random_id: Math.floor(Math.random() * 1000000000)
+                })
+            }).then(function(response) {
+                if (response.ok) {
+                    console.log('✅ Сообщение отправлено пользователю ' + userIdNum);
+                } else {
+                    console.warn('⚠️ Статус ответа:', response.status, 'для пользователя', userIdNum);
+                }
+            }).catch(function(error) {
+                console.log('ℹ️ Запрос отправлен');
+            });
+        }
+
+        // ============================================================
+        // 4. МОДАЛЬНОЕ ОКНО ДЛЯ СТАТУСА (С АБОНЕМЕНТОМ)
+        // ============================================================
+        function StatusModal(props) {
+            var lesson = props.lesson;
+            var student = props.student;
+            var onClose = props.onClose;
+            var onStatusChange = props.onStatusChange;
+            var currentStatus = props.currentStatus || LESSON_STATUS.SCHEDULED;
+
+            if (!lesson) return null;
+
+            var handleStatusChange = function(newStatus) {
+                onStatusChange(lesson.id, newStatus);
+                onClose();
+            };
+
+            // Показываем предупреждение об абонементе если занятий осталось мало
+            var subscriptionWarning = null;
+            if (student.subscription_lessons !== undefined && student.subscription_lessons !== null) {
+                var remaining = student.subscription_lessons;
+                if (remaining <= 3 && remaining > 0) {
+                    subscriptionWarning = React.createElement(
+                        'div',
+                        { className: 'info-text', style: { background: '#ff9500', color: 'white', marginBottom: '12px' } },
+                        '⚠️ Осталось занятий по абонементу: ' + remaining
+                    );
+                } else if (remaining === 0) {
+                    subscriptionWarning = React.createElement(
+                        'div',
+                        { className: 'info-text', style: { background: '#ff3b30', color: 'white', marginBottom: '12px' } },
+                        '❌ Абонемент закончился! Нужно оплатить!'
+                    );
+                }
+            }
+
+            return React.createElement(
+                'div',
+                { className: 'modal-overlay', onClick: function(e) { if (e.target === e.currentTarget) onClose(); } },
+                React.createElement(
+                    'div',
+                    { className: 'modal-content' },
+                    React.createElement('h3', { className: 'modal-title' }, '📚 ' + student.name),
+                    React.createElement(
+                        'div',
+                        { className: 'modal-subtitle' },
+                        formatDate(lesson.date) + ' в ' + lesson.time,
+                        React.createElement('br'),
+                        'Текущий статус: ' + getStatusText(currentStatus)
+                    ),
+                    subscriptionWarning,
+                    React.createElement(
+                        'div',
+                        { className: 'modal-buttons' },
+                        React.createElement(
+                            'button',
+                            {
+                                className: 'modal-btn modal-btn-done',
+                                onClick: function() { handleStatusChange(LESSON_STATUS.DONE); }
+                            },
+                            '✅ Проведен'
+                        ),
+                        React.createElement(
+                            'button',
+                            {
+                                className: 'modal-btn modal-btn-reschedule',
+                                onClick: function() { handleStatusChange(LESSON_STATUS.RESCHEDULED); }
+                            },
+                            '⏳ Перенести'
+                        ),
+                        React.createElement(
+                            'button',
+                            {
+                                className: 'modal-btn modal-btn-cancel',
+                                onClick: function() { handleStatusChange(LESSON_STATUS.CANCELED); }
+                            },
+                            '❌ Отменен'
+                        ),
+                        currentStatus !== LESSON_STATUS.SCHEDULED ?
+                            React.createElement(
+                                'button',
+                                {
+                                    className: 'modal-btn modal-btn-scheduled',
+                                    onClick: function() { handleStatusChange(LESSON_STATUS.SCHEDULED); }
+                                },
+                                '📅 Вернуть в расписание'
+                            ) : null,
+                        React.createElement(
+                            'button',
+                            {
+                                className: 'modal-btn modal-btn-close',
+                                onClick: onClose
+                            },
+                            'Закрыть'
+                        )
+                    )
+                )
+            );
+        }
+
+        // ============================================================
+        // 5. МОДАЛЬНОЕ ОКНО ДНЯ КАЛЕНДАРЯ
+        // ============================================================
+        function DayModal(props) {
+            var date = props.date;
+            var lessons = props.lessons || [];
+            var note = props.note || '';
+            var onClose = props.onClose;
+            var onSaveNote = props.onSaveNote;
+
+            var noteState = React.useState(note);
+            var currentNote = noteState[0];
+            var setCurrentNote = noteState[1];
+
+            var handleSave = function() {
+                onSaveNote(date, currentNote);
+                onClose();
+            };
+
+            var formattedDate = date ? formatDate(date) : '';
+
+            var lessonItems = lessons.map(function(l, index) {
+                var statusText = '';
+                var statusClass = '';
+                if (l.status === LESSON_STATUS.DONE) {
+                    statusText = '✅';
+                    statusClass = 'lesson-status-done';
+                } else if (l.status === LESSON_STATUS.CANCELED) {
+                    statusText = '❌';
+                    statusClass = 'lesson-status-canceled';
+                } else if (l.status === LESSON_STATUS.RESCHEDULED) {
+                    statusText = '⏳';
+                    statusClass = 'lesson-status-rescheduled';
+                }
+
+                return React.createElement(
+                    'div',
+                    { key: index, className: 'day-modal-lesson-item ' + statusClass },
+                    React.createElement('span', null, l.student + ' в ' + l.time),
+                    React.createElement('span', null, statusText)
+                );
+            });
+
+            return React.createElement(
+                'div',
+                { className: 'modal-overlay', onClick: function(e) { if (e.target === e.currentTarget) onClose(); } },
+                React.createElement(
+                    'div',
+                    { className: 'modal-content' },
+                    React.createElement('h3', { className: 'modal-title' }, '📅 ' + formattedDate),
+                    
+                    React.createElement('div', { className: 'day-modal-lessons' },
+                        React.createElement('span', { className: 'label' }, 'Занятия:'),
+                        lessons.length > 0 ? lessonItems :
+                            React.createElement('div', { className: 'text-muted' }, 'Нет занятий')
+                    ),
+
+                    React.createElement('div', { className: 'day-modal-note' },
+                        React.createElement('span', { className: 'label' }, '📝 Заметка:'),
+                        React.createElement('textarea', {
+                            className: 'textarea',
+                            placeholder: 'Напишите заметку на этот день...',
+                            value: currentNote,
+                            onChange: function(e) { setCurrentNote(e.target.value); }
+                        })
+                    ),
+
+                    React.createElement(
+                        'button',
+                        { className: 'modal-btn modal-btn-save', onClick: handleSave },
+                        '💾 Сохранить заметку'
+                    ),
+                    React.createElement(
+                        'button',
+                        { className: 'btn-close-modal', onClick: onClose },
+                        'Закрыть'
+                    )
+                )
+            );
+        }
+
+        // ============================================================
+        // 6. КОМПОНЕНТ КАЛЕНДАРЯ
+        // ============================================================
+        function Calendar(props) {
+            var students = props.students;
+            var notes = props.notes || {};
+            var currentDate = props.currentDate || new Date();
+            var onDateClick = props.onDateClick;
+            var onMonthChange = props.onMonthChange;
+
+            var year = currentDate.getFullYear();
+            var month = currentDate.getMonth();
+            var firstDayOfMonth = new Date(year, month, 1);
+            var lastDayOfMonth = new Date(year, month + 1, 0);
+            var daysInMonth = lastDayOfMonth.getDate();
+            var startDayOfWeek = firstDayOfMonth.getDay();
+
+            // Собираем все занятия со всех учеников
+            var allLessons = {};
+            students.forEach(function(student) {
+                var schedule = student.schedule || [];
+                var lessons = generateLessons(schedule, 4);
+                var statuses = student.lesson_statuses || {};
+                
+                lessons.forEach(function(l) {
+                    var status = statuses[l.id] || LESSON_STATUS.SCHEDULED;
+                    if (status === LESSON_STATUS.SCHEDULED || status === LESSON_STATUS.RESCHEDULED) {
+                        if (!allLessons[l.date]) {
+                            allLessons[l.date] = [];
+                        }
+                        allLessons[l.date].push({
+                            student: student.name,
+                            time: l.time,
+                            status: status
+                        });
+                    }
+                });
+            });
+
+            var changeMonth = function(delta) {
+                var newDate = new Date(currentDate);
+                newDate.setMonth(newDate.getMonth() + delta);
+                onMonthChange(newDate);
+            };
+
+            var days = [];
+            var today = new Date();
+            var todayStr = today.toISOString().slice(0, 10);
+
+            for (var i = 0; i < startDayOfWeek; i++) {
+                days.push({ empty: true });
+            }
+
+            for (var d = 1; d <= daysInMonth; d++) {
+                var dateObj = new Date(year, month, d);
+                var dateStr = dateObj.toISOString().slice(0, 10);
+                var isToday = dateStr === todayStr;
+                var hasLessons = allLessons[dateStr] && allLessons[dateStr].length > 0;
+                var lessonCount = hasLessons ? allLessons[dateStr].length : 0;
+                var lessonInfo = hasLessons ? allLessons[dateStr] : [];
+                var hasNote = notes[dateStr] && notes[dateStr].trim() !== '';
+
+                days.push({
+                    day: d,
+                    date: dateStr,
+                    isToday: isToday,
+                    hasLessons: hasLessons,
+                    lessonCount: lessonCount,
+                    lessonInfo: lessonInfo,
+                    hasNote: hasNote
+                });
+            }
+
+            var monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+
+            var dayElements = days.map(function(day, index) {
+                if (day.empty) {
+                    return React.createElement('div', { key: 'empty-' + index, className: 'calendar-day empty' });
+                }
+
+                var tooltipContent = null;
+                if (day.hasLessons && day.lessonInfo) {
+                    var tooltipLines = day.lessonInfo.map(function(info, idx) {
+                        return React.createElement('div', { key: idx }, info.student + ' в ' + info.time);
+                    });
+                    if (day.hasNote) {
+                        tooltipLines.push(React.createElement('div', { key: 'note', style: { color: '#ff9500' } }, '📝 Есть заметка'));
+                    }
+                    tooltipContent = React.createElement(
+                        'div',
+                        { className: 'calendar-tooltip' },
+                        tooltipLines
+                    );
+                }
+
+                var dayClass = 'calendar-day';
+                if (day.hasLessons) dayClass += ' has-lessons';
+                if (day.hasNote) dayClass += ' has-note';
+                if (day.isToday) dayClass += ' today';
+
+                return React.createElement(
+                    'div',
+                    {
+                        key: day.day,
+                        className: dayClass,
+                        onClick: function() {
+                            onDateClick(day.date, day.lessonInfo, day.hasNote);
+                        }
+                    },
+                    React.createElement('span', { className: 'day-number' }, day.day),
+                    day.hasLessons ? 
+                        React.createElement('span', { className: 'lesson-count' }, day.lessonCount) : null,
+                    day.hasNote ?
+                        React.createElement('span', { className: 'note-indicator' }, '📝') : null,
+                    tooltipContent
+                );
+            });
+
+            return React.createElement(
+                'div',
+                { className: 'card' },
+                React.createElement(
+                    'div',
+                    { className: 'calendar-nav' },
+                    React.createElement(
+                        'button',
+                        { onClick: function() { changeMonth(-1); } },
+                        '‹'
+                    ),
+                    React.createElement(
+                        'span',
+                        { className: 'month-label' },
+                        monthNames[month] + ' ' + year
+                    ),
+                    React.createElement(
+                        'button',
+                        { onClick: function() { changeMonth(1); } },
+                        '›'
+                    )
+                ),
+                React.createElement(
+                    'div',
+                    { className: 'calendar-grid' },
+                    DAY_NAMES_SHORT.map(function(name) {
+                        return React.createElement(
+                            'div',
+                            { key: name, className: 'calendar-day-header' },
+                            name
+                        );
+                    }),
+                    dayElements
+                ),
+                React.createElement(
+                    'div',
+                    { className: 'calendar-legend' },
+                    React.createElement(
+                        'div',
+                        { className: 'calendar-legend-item' },
+                        React.createElement('span', { className: 'calendar-legend-dot' }),
+                        'Занятия'
+                    ),
+                    React.createElement(
+                        'div',
+                        { className: 'calendar-legend-item' },
+                        React.createElement('span', { className: 'calendar-legend-dot today-dot' }),
+                        'Сегодня'
+                    ),
+                    React.createElement(
+                        'div',
+                        { className: 'calendar-legend-item' },
+                        React.createElement('span', { className: 'calendar-legend-dot note-dot' }),
+                        'Заметка'
+                    )
+                )
+            );
+        }
+
+        // ============================================================
+        // 7. ГЛАВНЫЙ КОМПОНЕНТ
+        // ============================================================
+        function App() {
+            var studentsState = React.useState([]);
+            var students = studentsState[0];
+            var setStudents = studentsState[1];
+
+            var selectedStudentState = React.useState(null);
+            var selectedStudent = selectedStudentState[0];
+            var setSelectedStudent = selectedStudentState[1];
+
+            var editingScheduleState = React.useState(false);
+            var editingSchedule = editingScheduleState[0];
+            var setEditingSchedule = editingScheduleState[1];
+
+            var addDayState = React.useState(null);
+            var addDay = addDayState[0];
+            var setAddDay = addDayState[1];
+
+            var addTimesState = React.useState(['15:00']);
+            var addTimes = addTimesState[0];
+            var setAddTimes = addTimesState[1];
+
+            var loadingState = React.useState(true);
+            var loading = loadingState[0];
+            var setLoading = loadingState[1];
+
+            var modalLessonState = React.useState(null);
+            var modalLesson = modalLessonState[0];
+            var setModalLesson = modalLessonState[1];
+
+            var statusFilterState = React.useState('all');
+            var statusFilter = statusFilterState[0];
+            var setStatusFilter = statusFilterState[1];
+
+            var calendarDateState = React.useState(new Date());
+            var calendarDate = calendarDateState[0];
+            var setCalendarDate = calendarDateState[1];
+
+            var calendarNotesState = React.useState({});
+            var calendarNotes = calendarNotesState[0];
+            var setCalendarNotes = calendarNotesState[1];
+
+            var dayModalState = React.useState(null);
+            var dayModal = dayModalState[0];
+            var setDayModal = dayModalState[1];
+
+            // Состояние для редактирования абонемента
+            var editSubscriptionState = React.useState(null);
+            var editSubscription = editSubscriptionState[0];
+            var setEditSubscription = editSubscriptionState[1];
+
+            async function refreshData() {
+                console.log('🔄 Обновление данных из базы...');
+                try {
+                    var result = await supabaseClient
+                        .from('students')
+                        .select('*')
+                        .order('name');
+
+                    if (result.error) {
+                        console.error('Ошибка загрузки:', result.error);
+                    } else {
+                        console.log('✅ Данные обновлены:', result.data.length, 'учеников');
+                        setStudents(result.data || []);
+                        
+                        if (selectedStudent) {
+                            var updated = result.data.find(function(s) { return s.id === selectedStudent.id; });
+                            if (updated) {
+                                setSelectedStudent(updated);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Ошибка:', error);
+                }
+            }
+
+            React.useEffect(function() {
+                try {
+                    var saved = localStorage.getItem('calendar_notes');
+                    if (saved) {
+                        setCalendarNotes(JSON.parse(saved));
+                    }
+                } catch (e) {
+                    console.warn('Ошибка загрузки заметок:', e);
+                }
+            }, []);
+
+            React.useEffect(function() {
+                try {
+                    localStorage.setItem('calendar_notes', JSON.stringify(calendarNotes));
+                } catch (e) {
+                    console.warn('Ошибка сохранения заметок:', e);
+                }
+            }, [calendarNotes]);
+
+            React.useEffect(function() {
+                loadStudents();
+            }, []);
+
+            async function loadStudents() {
+                setLoading(true);
+                try {
+                    var result = await supabaseClient
+                        .from('students')
+                        .select('*')
+                        .order('name');
+
+                    if (result.error) {
+                        alert('Ошибка загрузки: ' + result.error.message);
+                    } else {
+                        setStudents(result.data || []);
+                    }
+                } catch (error) {
+                    alert('Ошибка подключения к Supabase: ' + error.message);
+                }
+                setLoading(false);
+            }
+
+            // ===== ДОБАВЛЕНИЕ УЧЕНИКА =====
+            async function addStudent(name, vkUserId) {
+                if (!name.trim()) {
+                    alert('Введите имя ученика');
+                    return;
+                }
+
+                var newStudent = {
+                    name: name.trim(),
+                    vk_user_id: vkUserId || null,
+                    schedule: [],
+                    total_lessons: 0,
+                    total_price: 0,
+                    lesson_statuses: {},
+                    reminders_on: false,
+                    subscription_lessons: 0 // Количество оплаченных занятий
+                };
+
+                try {
+                    var result = await supabaseClient
+                        .from('students')
+                        .insert([newStudent])
+                        .select()
+                        .single();
+
+                    if (result.error) {
+                        alert('Ошибка добавления: ' + result.error.message);
+                        return;
+                    }
+
+                    await refreshData();
+                    setSelectedStudent(result.data);
+                } catch (error) {
+                    alert('Ошибка: ' + error.message);
+                }
+            }
+
+            async function deleteStudent(id) {
+                if (!confirm('Удалить ученика?')) return;
+
+                try {
+                    var result = await supabaseClient
+                        .from('students')
+                        .delete()
+                        .eq('id', id);
+
+                    if (result.error) {
+                        alert('Ошибка удаления: ' + result.error.message);
+                        return;
+                    }
+
+                    await refreshData();
+                    if (selectedStudent && selectedStudent.id === id) {
+                        setSelectedStudent(null);
+                    }
+                } catch (error) {
+                    alert('Ошибка: ' + error.message);
+                }
+            }
+
+            // ===== ДОБАВЛЕНИЕ/ОБНОВЛЕНИЕ АБОНЕМЕНТА =====
+            async function updateSubscription(studentId, newCount) {
+                try {
+                    var result = await supabaseClient
+                        .from('students')
+                        .update({ subscription_lessons: newCount })
+                        .eq('id', studentId);
+
+                    if (result.error) {
+                        alert('❌ Ошибка сохранения абонемента: ' + result.error.message);
+                        return;
+                    }
+
+                    await refreshData();
+                    setEditSubscription(null);
+                    alert('✅ Абонемент обновлен! Осталось занятий: ' + newCount);
+                } catch (error) {
+                    alert('❌ Ошибка: ' + error.message);
+                }
+            }
+
+            // ===== ДОБАВЛЕНИЕ ДНЯ =====
+            async function addDayToSchedule(studentId, day, times) {
+                var student = null;
+                for (var i = 0; i < students.length; i++) {
+                    if (students[i].id === studentId) {
+                        student = students[i];
+                        break;
+                    }
+                }
+                if (!student) {
+                    console.log('❌ Студент не найден!');
+                    return;
+                }
+
+                var schedule = student.schedule || [];
+
+                var exists = false;
+                for (var k = 0; k < schedule.length; k++) {
+                    if (schedule[k].day === day) {
+                        exists = true;
+                        break;
+                    }
+                }
+
+                if (exists) {
+                    alert('⚠️ Этот день уже добавлен!');
+                    return;
+                }
+
+                var uniqueTimes = times.filter(function(v, i, a) {
+                    return a.indexOf(v) === i;
+                });
+                uniqueTimes.sort();
+
+                var newSchedule = schedule.concat([{
+                    day: day,
+                    times: uniqueTimes
+                }]);
+
+                try {
+                    var result = await supabaseClient
+                        .from('students')
+                        .update({ schedule: newSchedule })
+                        .eq('id', studentId);
+
+                    if (result.error) {
+                        alert('❌ Ошибка сохранения: ' + result.error.message);
+                        return;
+                    }
+
+                    await refreshData();
+                    setAddDay(null);
+                    setAddTimes(['15:00']);
+                    alert('✅ День добавлен!');
+
+                } catch (error) {
+                    alert('❌ Ошибка: ' + error.message);
+                }
+            }
+
+            // ===== УДАЛЕНИЕ ДНЯ =====
+            async function removeDayFromSchedule(studentId, day) {
+                var student = null;
+                for (var i = 0; i < students.length; i++) {
+                    if (students[i].id === studentId) {
+                        student = students[i];
+                        break;
+                    }
+                }
+                if (!student) {
+                    console.log('❌ Студент не найден!');
+                    return;
+                }
+
+                var schedule = student.schedule || [];
+                var newSchedule = schedule.filter(function(s) {
+                    return s.day !== day;
+                });
+
+                try {
+                    var result = await supabaseClient
+                        .from('students')
+                        .update({ schedule: newSchedule })
+                        .eq('id', studentId);
+
+                    if (result.error) {
+                        alert('❌ Ошибка сохранения: ' + result.error.message);
+                        return;
+                    }
+
+                    await refreshData();
+                    alert('✅ День удален!');
+
+                } catch (error) {
+                    alert('❌ Ошибка: ' + error.message);
+                }
+            }
+
+            // ===== ИЗМЕНЕНИЕ СТАТУСА УРОКА (С АБОНЕМЕНТОМ) =====
+            async function changeLessonStatus(studentId, lessonId, newStatus) {
+                var student = null;
+                for (var i = 0; i < students.length; i++) {
+                    if (students[i].id === studentId) {
+                        student = students[i];
+                        break;
+                    }
+                }
+                if (!student) return;
+
+                var statuses = student.lesson_statuses || {};
+                var currentStatus = statuses[lessonId] || LESSON_STATUS.SCHEDULED;
+                
+                // Получаем текущее количество занятий по абонементу
+                var subscriptionCount = student.subscription_lessons || 0;
+                var subscriptionUpdated = false;
+                var needNotify = false;
+
+                // Если отмечаем урок как проведенный И он был запланирован
+                if (newStatus === LESSON_STATUS.DONE && currentStatus !== LESSON_STATUS.DONE) {
+                    // Уменьшаем количество занятий по абонементу
+                    if (subscriptionCount > 0) {
+                        subscriptionCount--;
+                        subscriptionUpdated = true;
+                        
+                        // Если после уменьшения стало 0 - нужно уведомить
+                        if (subscriptionCount === 0) {
+                            needNotify = true;
+                        }
+                    }
+                }
+
+                // Обновляем статус урока
+                if (newStatus === LESSON_STATUS.SCHEDULED) {
+                    delete statuses[lessonId];
+                } else {
+                    statuses[lessonId] = newStatus;
+                }
+
+                try {
+                    // Обновляем статусы и абонемент
+                    var updateData = { lesson_statuses: statuses };
+                    if (subscriptionUpdated) {
+                        updateData.subscription_lessons = subscriptionCount;
+                    }
+
+                    var result = await supabaseClient
+                        .from('students')
+                        .update(updateData)
+                        .eq('id', studentId);
+
+                    if (result.error) {
+                        alert('Ошибка: ' + result.error.message);
+                        return;
+                    }
+
+                    await refreshData();
+
+                    // Если абонемент закончился - отправляем уведомление
+                    if (needNotify && student.vk_user_id) {
+                        var message = '❌ Ваш абонемент на занятия закончился!\n\n' +
+                                     'Чтобы продолжить занятия, пожалуйста, оплатите новый абонемент.\n\n' +
+                                     'Спасибо! 🙏';
+                        sendVkMessage(student.vk_user_id, message);
+                        console.log('📨 Отправлено уведомление об окончании абонемента');
+                        
+                        // Также отправляем себе
+                        sendVkMessage(TUTOR_VK_ID, '🔔 Абонемент закончился у ученика ' + student.name);
+                    }
+                } catch (error) {
+                    alert('Ошибка: ' + error.message);
+                }
+            }
+
+            function openStatusModal(lesson) {
+                setModalLesson(lesson);
+            }
+
+            // ===== ВКЛЮЧЕНИЕ НАПОМИНАНИЙ =====
+            async function enableReminders(student) {
+                var lessons = generateLessons(student.schedule || [], 1);
+                var statuses = student.lesson_statuses || {};
+                var futureLessons = lessons.filter(function(l) {
+                    var status = statuses[l.id] || LESSON_STATUS.SCHEDULED;
+                    return status === LESSON_STATUS.SCHEDULED;
+                });
+
+                if (futureLessons.length === 0) {
+                    alert('⚠️ Нет запланированных занятий на эту неделю');
+                    return;
+                }
+
+                var count = 0;
+
+                for (var i = 0; i < futureLessons.length; i++) {
+                    var l = futureLessons[i];
+                    var lessonDate = lessonToDate(l);
+                    var reminderDate = new Date(lessonDate.getTime() - 60 * 60 * 1000);
+
+                    if (reminderDate.getTime() > Date.now()) {
+                        var tutorMessage = '🔔 Напоминание: занятие с ' + student.name + ' в ' + l.time + ' (' + formatDate(l.date) + ')';
+                        sendVkMessage(TUTOR_VK_ID, tutorMessage);
+
+                        if (student.vk_user_id) {
+                            var studentMessage = 'Напоминаем, что через 60 минут начнется занятие по русскому языку в ' + l.time;
+                            sendVkMessage(student.vk_user_id, studentMessage);
+                        }
+
+                        count++;
+                    }
+                }
+
+                try {
+                    var result = await supabaseClient
+                        .from('students')
+                        .update({ reminders_on: true })
+                        .eq('id', student.id);
+
+                    if (result.error) {
+                        alert('Ошибка сохранения: ' + result.error.message);
+                        return;
+                    }
+
+                    await refreshData();
+                    alert('✅ Запланировано напоминаний: ' + count);
+                } catch (error) {
+                    alert('Ошибка: ' + error.message);
+                }
+            }
+
+            // ===== ТЕСТОВАЯ ОТПРАВКА ВК =====
+            function testVkMessage(student) {
+                if (!student.vk_user_id) {
+                    alert('⚠️ У ученика не указан VK ID');
+                    return;
+                }
+
+                var message = '🧪 Тестовое сообщение от вашего приложения "Репетитор"!\n\n' +
+                             'Ученик: ' + student.name + '\n' +
+                             'Время: ' + new Date().toLocaleString('ru-RU');
+
+                sendVkMessage(student.vk_user_id, message);
+                alert('✅ Сообщение отправлено!');
+            }
+
+            // ===== ОБРАБОТЧИК КЛИКА ПО ДНЮ =====
+            function handleDateClick(date, lessons, hasNote) {
+                var note = calendarNotes[date] || '';
+                setDayModal({
+                    date: date,
+                    lessons: lessons || [],
+                    note: note
+                });
+            }
+
+            function handleSaveNote(date, note) {
+                var newNotes = Object.assign({}, calendarNotes);
+                if (note.trim() === '') {
+                    delete newNotes[date];
+                } else {
+                    newNotes[date] = note.trim();
+                }
+                setCalendarNotes(newNotes);
+            }
+
+            // ============================================================
+            // 8. ОТРИСОВКА
+            // ============================================================
+
+            function getWeekInfo() {
+                var today = new Date();
+                var currentDay = today.getDay();
+                var diff = today.getDate() - currentDay + (currentDay === 0 ? -6 : 1);
+                var monday = new Date(today);
+                monday.setDate(diff);
+                
+                var sunday = new Date(monday);
+                sunday.setDate(monday.getDate() + 6);
+                
+                var options = { day: 'numeric', month: 'long' };
+                return '📅 ' + monday.toLocaleDateString('ru-RU', options) + ' - ' + 
+                       sunday.toLocaleDateString('ru-RU', options);
+            }
+
+            // ===== РЕНДЕР СПИСКА УЧЕНИКОВ С АБОНЕМЕНТОМ =====
+            function renderStudentList() {
+                if (loading) {
+                    return React.createElement('div', { className: 'loading-spinner' }, '⏳ Загрузка...');
+                }
+
+                if (students.length === 0) {
+                    return React.createElement('div', { className: 'text-muted' }, 'Нет учеников. Добавьте первого!');
+                }
+
+                return students.map(function(student) {
+                    var statuses = student.lesson_statuses || {};
+                    var statusCount = Object.keys(statuses).length;
+                    var subscription = student.subscription_lessons || 0;
+                    
+                    // Определяем цвет бейджа абонемента
+                    var badgeClass = 'badge';
+                    if (subscription === 0) {
+                        badgeClass += ' badge-danger';
+                    } else if (subscription <= 3) {
+                        badgeClass += ' badge-warning';
+                    } else {
+                        badgeClass += ' badge-active';
+                    }
+
+                    return React.createElement(
+                        'div',
+                        { key: student.id, className: 'card fade-in' },
+                        React.createElement(
+                            'div',
+                            { className: 'flex-between' },
+                            React.createElement(
+                                'div',
+                                {
+                                    className: 'student-name',
+                                    onClick: function() { setSelectedStudent(student); }
+                                },
+                                student.name
+                            ),
+                            React.createElement(
+                                'div',
+                                null,
+                                React.createElement(
+                                    'span',
+                                    { className: badgeClass },
+                                    '🎫 ' + subscription
+                                ),
+                                React.createElement(
+                                    'span',
+                                    { className: 'badge ' + (student.reminders_on ? 'badge-active' : '') },
+                                    student.reminders_on ? '🔔' : '🔕'
+                                ),
+                                React.createElement(
+                                    'button',
+                                    {
+                                        className: 'btn btn-danger btn-small',
+                                        onClick: function() { deleteStudent(student.id); }
+                                    },
+                                    '✕'
+                                )
+                            )
+                        ),
+                        React.createElement(
+                            'div',
+                            { className: 'text-muted', style: { fontSize: '13px' } },
+                            'Занятий: ' + (student.schedule ? student.schedule.length : 0) + ' дней' +
+                            (statusCount > 0 ? ' | Статусов: ' + statusCount : '')
+                        )
+                    );
+                });
+            }
+
+            function renderScheduleEditor(student) {
+                var schedule = student.schedule || [];
+                var allDays = [0, 1, 2, 3, 4, 5, 6];
+
+                var dayList = allDays.map(function(dayNum) {
+                    var dayName = DAY_NAMES[dayNum];
+                    var scheduleItem = null;
+                    for (var k = 0; k < schedule.length; k++) {
+                        if (schedule[k].day === dayNum) {
+                            scheduleItem = schedule[k];
+                            break;
+                        }
+                    }
+                    var isAdded = scheduleItem !== null;
+
+                    return React.createElement(
+                        'div',
+                        { key: dayNum, className: 'day-schedule-item', style: isAdded ? {} : { opacity: 0.5 } },
+                        React.createElement('span', { className: 'day-name' }, dayName),
+                        React.createElement(
+                            'span',
+                            { className: 'day-details' },
+                            isAdded ? 
+                                React.createElement(
+                                    'div',
+                                    { className: 'slot-times' },
+                                    (scheduleItem.times || []).map(function(t) {
+                                        return React.createElement(
+                                            'span',
+                                            { key: t, className: 'slot-time-tag' },
+                                            t
+                                        );
+                                    })
+                                ) :
+                                'не добавлен'
+                        ),
+                        React.createElement(
+                            'div',
+                            { className: 'day-actions' },
+                            isAdded ?
+                                React.createElement(
+                                    'button',
+                                    {
+                                        className: 'btn-remove-day',
+                                        onClick: function() {
+                                            if (confirm('Удалить день ' + dayName + '?')) {
+                                                removeDayFromSchedule(student.id, dayNum);
+                                            }
+                                        }
+                                    },
+                                    '✕'
+                                ) :
+                                React.createElement(
+                                    'button',
+                                    {
+                                        className: 'btn-add-day',
+                                        onClick: function() {
+                                            setAddDay(dayNum);
+                                            setAddTimes(['15:00']);
+                                        }
+                                    },
+                                    '+'
+                                )
+                        )
+                    );
+                });
+
+                var addForm = null;
+                if (addDay !== null) {
+                    var timeOptions = TIME_SLOTS.map(function(t) {
+                        return React.createElement(
+                            'option',
+                            { key: t, value: t },
+                            t
+                        );
+                    });
+
+                    var addTimeSlot = function() {
+                        var newTimes = addTimes.concat(['15:00']);
+                        setAddTimes(newTimes);
+                    };
+
+                    var removeTimeSlot = function(index) {
+                        var newTimes = addTimes.filter(function(_, i) { return i !== index; });
+                        if (newTimes.length === 0) {
+                            newTimes = ['15:00'];
+                        }
+                        setAddTimes(newTimes);
+                    };
+
+                    var changeTimeSlot = function(index, value) {
+                        var newTimes = addTimes.map(function(t, i) {
+                            return i === index ? value : t;
+                        });
+                        setAddTimes(newTimes);
+                    };
+
+                    var timeSlotItems = addTimes.map(function(time, index) {
+                        return React.createElement(
+                            'div',
+                            { key: index, className: 'time-slot-item' },
+                            React.createElement(
+                                'select',
+                                {
+                                    value: time,
+                                    onChange: function(e) { changeTimeSlot(index, e.target.value); }
+                                },
+                                timeOptions
+                            ),
+                            addTimes.length > 1 ?
+                                React.createElement(
+                                    'button',
+                                    {
+                                        className: 'btn-remove-slot',
+                                        onClick: function() { removeTimeSlot(index); }
+                                    },
+                                    '✕'
+                                ) : null
+                        );
+                    });
+
+                    addForm = React.createElement(
+                        'div',
+                        { className: 'count-selector' },
+                        React.createElement(
+                            'div',
+                            { className: 'label' },
+                            'Добавление дня: ' + DAY_NAMES[addDay]
+                        ),
+                        React.createElement(
+                            'div',
+                            null,
+                            React.createElement('span', { className: 'label' }, 'Время занятий:'),
+                            React.createElement(
+                                'div',
+                                { className: 'time-slots' },
+                                timeSlotItems
+                            ),
+                            React.createElement(
+                                'button',
+                                {
+                                    className: 'btn-add-slot',
+                                    onClick: addTimeSlot
+                                },
+                                '+ Добавить время'
+                            )
+                        ),
+                        React.createElement(
+                            'button',
+                            {
+                                className: 'btn',
+                                style: { background: '#34c759' },
+                                onClick: function() {
+                                    if (addTimes.length === 0) {
+                                        alert('Добавьте хотя бы одно время!');
+                                        return;
+                                    }
+                                    addDayToSchedule(student.id, addDay, addTimes);
+                                }
+                            },
+                            '✅ Добавить'
+                        ),
+                        React.createElement(
+                            'button',
+                            {
+                                className: 'btn',
+                                style: { background: '#ff3b30' },
+                                onClick: function() {
+                                    setAddDay(null);
+                                    setAddTimes(['15:00']);
+                                }
+                            },
+                            '❌ Отмена'
+                        )
+                    );
+                }
+
+                return React.createElement(
+                    'div',
+                    null,
+                    React.createElement('div', { className: 'label' }, 'Дни недели:'),
+                    React.createElement('div', null, dayList),
+                    addForm
+                );
+            }
+
+            function renderScheduleView(student) {
+                var schedule = student.schedule || [];
+                var hasSchedule = schedule.length > 0;
+
+                if (!hasSchedule) {
+                    return React.createElement('div', { className: 'text-muted' }, 'Не настроено');
+                }
+
+                var dayItems = schedule.map(function(item) {
+                    var times = (item.times || []).join(', ');
+                    return React.createElement(
+                        'span',
+                        { key: item.day, className: 'day-chip-active' },
+                        DAY_NAMES[item.day] + ' (' + times + ')'
+                    );
+                });
+
+                return React.createElement('div', { className: 'day-row' }, dayItems);
+            }
+
+            // ===== КОМПОНЕНТ АБОНЕМЕНТА =====
+            function SubscriptionEditor(props) {
+                var student = props.student;
+                var onUpdate = props.onUpdate;
+
+                var subscriptionCount = student.subscription_lessons || 0;
+                var isEditing = props.isEditing || false;
+
+                var countClass = 'count good';
+                if (subscriptionCount === 0) countClass = 'count danger';
+                else if (subscriptionCount <= 3) countClass = 'count warning';
+
+                if (isEditing) {
+                    var inputState = React.useState(subscriptionCount);
+                    var inputValue = inputState[0];
+                    var setInputValue = inputState[1];
+
+                    return React.createElement(
+                        'div',
+                        { className: 'subscription-box' },
+                        React.createElement(
+                            'div',
+                            null,
+                            React.createElement('span', { className: 'label' }, 'Осталось занятий:')
+                        ),
+                        React.createElement(
+                            'div',
+                            { style: { display: 'flex', gap: '8px', alignItems: 'center' } },
+                            React.createElement('input', {
+                                className: 'input-small',
+                                type: 'number',
+                                min: 0,
+                                value: inputValue,
+                                onChange: function(e) { setInputValue(parseInt(e.target.value) || 0); }
+                            }),
+                            React.createElement(
+                                'button',
+                                {
+                                    className: 'btn btn-success btn-small',
+                                    onClick: function() { onUpdate(student.id, inputValue); }
+                                },
+                                '💾 Сохранить'
+                            ),
+                            React.createElement(
+                                'button',
+                                {
+                                    className: 'btn btn-secondary btn-small',
+                                    onClick: function() { onUpdate(student.id, subscriptionCount); }
+                                },
+                                '↩️ Отмена'
+                            )
+                        )
+                    );
+                }
+
+                return React.createElement(
+                    'div',
+                    { className: 'subscription-box' },
+                    React.createElement(
+                        'div',
+                        null,
+                        React.createElement('span', { className: 'label' }, '🎫 Абонемент'),
+                        React.createElement(
+                            'div',
+                            { className: countClass },
+                            subscriptionCount + ' занятий'
+                        )
+                    ),
+                    React.createElement(
+                        'div',
+                        { className: 'subscription-actions' },
+                        React.createElement(
+                            'button',
+                            {
+                                className: 'btn btn-warning btn-small',
+                                onClick: function() { props.onEditStart(); }
+                            },
+                            '✏️ Изменить'
+                        )
+                    )
+                );
+            }
+
+            function renderStudentCard() {
+                if (!selectedStudent) return null;
+
+                var student = selectedStudent;
+                var allLessons = generateLessons(student.schedule || [], 1);
+                var statuses = student.lesson_statuses || {};
+
+                var lessonsWithStatus = allLessons.map(function(l) {
+                    var status = statuses[l.id] || LESSON_STATUS.SCHEDULED;
+                    return {
+                        id: l.id,
+                        date: l.date,
+                        time: l.time,
+                        status: status
+                    };
+                });
+
+                var filteredLessons = lessonsWithStatus;
+                if (statusFilter !== 'all') {
+                    filteredLessons = lessonsWithStatus.filter(function(l) {
+                        return l.status === statusFilter;
+                    });
+                }
+
+                var modal = null;
+                if (modalLesson) {
+                    var currentStatus = statuses[modalLesson.id] || LESSON_STATUS.SCHEDULED;
+                    modal = React.createElement(StatusModal, {
+                        lesson: modalLesson,
+                        student: student,
+                        currentStatus: currentStatus,
+                        onClose: function() { setModalLesson(null); },
+                        onStatusChange: function(lessonId, newStatus) {
+                            changeLessonStatus(student.id, lessonId, newStatus);
+                        }
+                    });
+                }
+
+                var weekInfo = getWeekInfo();
+
+                var lessonItems = filteredLessons.map(function(l) {
+                    var statusText = '';
+                    var statusClass = '';
+                    if (l.status === LESSON_STATUS.DONE) {
+                        statusText = '✅';
+                        statusClass = 'lesson-status-done';
+                    } else if (l.status === LESSON_STATUS.CANCELED) {
+                        statusText = '❌';
+                        statusClass = 'lesson-status-canceled';
+                    } else if (l.status === LESSON_STATUS.RESCHEDULED) {
+                        statusText = '⏳';
+                        statusClass = 'lesson-status-rescheduled';
+                    }
+
+                    return React.createElement(
+                        'div',
+                        {
+                            key: l.id,
+                            className: 'lesson-item',
+                            onClick: function() {
+                                openStatusModal(l);
+                            }
+                        },
+                        React.createElement(
+                            'span',
+                            { className: 'lesson-date ' + statusClass },
+                            formatDate(l.date) + ' в ' + l.time,
+                            ' ',
+                            statusText
+                        ),
+                        React.createElement(
+                            'span',
+                            { className: 'text-muted', style: { fontSize: '12px' } },
+                            '👆 Нажмите'
+                        )
+                    );
+                });
+
+                var filterButtons = [
+                    { key: 'all', label: 'Все' },
+                    { key: LESSON_STATUS.SCHEDULED, label: '📅 Запланированы' },
+                    { key: LESSON_STATUS.DONE, label: '✅ Проведены' },
+                    { key: LESSON_STATUS.CANCELED, label: '❌ Отменены' },
+                    { key: LESSON_STATUS.RESCHEDULED, label: '⏳ Перенесены' }
+                ].map(function(filter) {
+                    var isActive = statusFilter === filter.key;
+                    return React.createElement(
+                        'button',
+                        {
+                            key: filter.key,
+                            className: 'btn btn-small ' + (isActive ? 'btn-success' : 'btn-secondary'),
+                            onClick: function() { setStatusFilter(filter.key); },
+                            style: { margin: '2px' }
+                        },
+                        filter.label
+                    );
+                });
+
+                return React.createElement(
+                    'div',
+                    null,
+                    React.createElement(
+                        'div',
+                        { className: 'card fade-in', style: { marginTop: '16px' } },
+                        React.createElement(
+                            'div',
+                            { className: 'flex-between' },
+                            React.createElement('h2', { className: 'subtitle' }, student.name),
+                            React.createElement(
+                                'div',
+                                null,
+                                React.createElement(
+                                    'button',
+                                    {
+                                        className: 'btn btn-warning btn-small',
+                                        onClick: function() { testVkMessage(student); },
+                                        style: { marginRight: '4px' }
+                                    },
+                                    '📨 Тест ВК'
+                                ),
+                                React.createElement(
+                                    'button',
+                                    {
+                                        className: 'btn btn-secondary btn-small',
+                                        onClick: function() { setSelectedStudent(null); }
+                                    },
+                                    '✕ Закрыть'
+                                )
+                            )
+                        ),
+                        React.createElement(
+                            'div',
+                            null,
+                            React.createElement('span', { className: 'label' }, 'VK ID:'),
+                            React.createElement(
+                                'div',
+                                { style: { fontSize: '14px', color: '#3a3a3c' } },
+                                student.vk_user_id || 'Не указан'
+                            )
+                        ),
+                        // ===== АБОНЕМЕНТ =====
+                        React.createElement(SubscriptionEditor, {
+                            student: student,
+                            isEditing: editSubscription === student.id,
+                            onEditStart: function() { setEditSubscription(student.id); },
+                            onUpdate: updateSubscription
+                        }),
+                        React.createElement(
+                            'div',
+                            { className: 'mt-8' },
+                            React.createElement(
+                                'div',
+                                { className: 'flex-between' },
+                                React.createElement('span', { className: 'label' }, 'Расписание:'),
+                                React.createElement(
+                                    'button',
+                                    {
+                                        className: 'btn btn-secondary btn-small',
+                                        onClick: function() { setEditingSchedule(!editingSchedule); }
+                                    },
+                                    editingSchedule ? '✅ Готово' : '✏️ Настроить'
+                                )
+                            ),
+                            editingSchedule ? renderScheduleEditor(student) : renderScheduleView(student)
+                        ),
+                        React.createElement(
+                            'button',
+                            {
+                                className: 'btn ' + (student.reminders_on ? 'btn-success' : ''),
+                                onClick: function() { enableReminders(student); }
+                            },
+                            student.reminders_on ? '✅ Напоминания включены' : '🔔 Включить напоминания'
+                        ),
+                        React.createElement(
+                            'div',
+                            { className: 'mt-8' },
+                            React.createElement('span', { className: 'label' }, 'Фильтр по статусу:'),
+                            React.createElement(
+                                'div',
+                                { style: { display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' } },
+                                filterButtons
+                            )
+                        ),
+                        React.createElement(
+                            'div',
+                            { className: 'mt-8' },
+                            React.createElement('div', { className: 'week-info' }, weekInfo),
+                            React.createElement('span', { className: 'label' }, 'Занятия на этой неделе:'),
+                            filteredLessons.length === 0 ?
+                                React.createElement('div', { className: 'text-muted' }, 'Нет занятий на этой неделе') :
+                                lessonItems
+                        )
+                    ),
+                    modal
+                );
+            }
+
+            function renderAddForm() {
+                var nameState = React.useState('');
+                var name = nameState[0];
+                var setName = nameState[1];
+
+                var vkIdState = React.useState('');
+                var vkId = vkIdState[0];
+                var setVkId = vkIdState[1];
+
+                var handleSubmit = function(e) {
+                    e.preventDefault();
+                    addStudent(name, vkId || null);
+                    setName('');
+                    setVkId('');
+                };
+
+                return React.createElement(
+                    'div',
+                    { className: 'card' },
+                    React.createElement(
+                        'form',
+                        { onSubmit: handleSubmit },
+                        React.createElement('input', {
+                            className: 'input',
+                            placeholder: 'Имя ученика',
+                            value: name,
+                            onChange: function(e) { setName(e.target.value); },
+                            required: true
+                        }),
+                        React.createElement('input', {
+                            className: 'input',
+                            placeholder: 'VK ID (опционально)',
+                            value: vkId,
+                            onChange: function(e) { setVkId(e.target.value); }
+                        }),
+                        React.createElement(
+                            'button',
+                            { className: 'btn', type: 'submit' },
+                            '➕ Добавить ученика'
+                        )
+                    )
+                );
+            }
+
+            // Модалка для дня
+            var dayModalElement = null;
+            if (dayModal) {
+                dayModalElement = React.createElement(DayModal, {
+                    date: dayModal.date,
+                    lessons: dayModal.lessons,
+                    note: dayModal.note,
+                    onClose: function() { setDayModal(null); },
+                    onSaveNote: handleSaveNote
+                });
+            }
+
+            return React.createElement(
+                'div',
+                null,
+                React.createElement('h1', { className: 'title' }, '📚 Репетитор'),
+                renderAddForm(),
+                React.createElement(
+                    Calendar,
+                    {
+                        students: students,
+                        notes: calendarNotes,
+                        currentDate: calendarDate,
+                        onMonthChange: setCalendarDate,
+                        onDateClick: handleDateClick
+                    }
+                ),
+                React.createElement('div', { className: 'subtitle' }, 'Ученики'),
+                renderStudentList(),
+                renderStudentCard(),
+                dayModalElement
+            );
+        }
+
+        // ============================================================
+        // 9. ЗАПУСК
+        // ============================================================
+        var root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(App, null));
+    </script>
+</body>
+</html>
