@@ -621,6 +621,15 @@
             margin-top: 8px;
         }
         .btn-close-modal:hover { opacity: 0.8; }
+        .auto-reminder-status {
+            font-size: 13px;
+            color: #5856D6;
+            padding: 8px 12px;
+            background: #f0f0ff;
+            border-radius: 8px;
+            margin: 8px 0;
+            text-align: center;
+        }
         @media (max-width: 500px) {
             body { padding: 12px; }
             .card { padding: 12px; }
@@ -648,7 +657,6 @@
         // ============================================================
         // 2. КОНСТАНТЫ
         // ============================================================
-        // ДНИ НЕДЕЛИ: ПН = 0, ВТ = 1, СР = 2, ЧТ = 3, ПТ = 4, СБ = 5, ВС = 6
         var DAY_NAMES = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
         var TUTOR_VK_ID = 88493864;
         var TIME_SLOTS = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00'];
@@ -681,7 +689,6 @@
             return '📅 Запланирован';
         }
 
-        // Получаем день недели: ПН = 0, ВС = 6
         function getMondayBasedDay(date) {
             var day = date.getDay();
             return day === 0 ? 6 : day - 1;
@@ -690,12 +697,18 @@
         function generateLessons(schedule, weeksAhead) {
             var lessons = [];
             var today = new Date();
+            today.setHours(0, 0, 0, 0);
             
-            // Находим понедельник текущей недели
             var currentDay = today.getDay();
-            var diff = today.getDate() - (currentDay === 0 ? 6 : currentDay - 1);
+            var diffToMonday;
+            if (currentDay === 0) {
+                diffToMonday = 6;
+            } else {
+                diffToMonday = currentDay - 1;
+            }
+            
             var monday = new Date(today);
-            monday.setDate(diff);
+            monday.setDate(today.getDate() - diffToMonday);
             monday.setHours(0, 0, 0, 0);
             
             var totalDays = 7 * weeksAhead;
@@ -714,7 +727,9 @@
                 }
                 if (!match) continue;
 
-                var dateStr = d.toISOString().slice(0, 10);
+                var dateStr = d.getFullYear() + '-' + 
+                              String(d.getMonth() + 1).padStart(2, '0') + '-' + 
+                              String(d.getDate()).padStart(2, '0');
                 var times = match.times || [];
 
                 for (var c = 0; c < times.length; c++) {
@@ -776,6 +791,66 @@
             }).catch(function(error) {
                 console.log('ℹ️ Запрос отправлен');
             });
+        }
+
+        // ============================================================
+        // АВТОМАТИЧЕСКАЯ ОТПРАВКА НАПОМИНАНИЙ
+        // ============================================================
+        var sentNotifications = {};
+
+        function checkUpcomingLessons(students) {
+            var now = new Date();
+            
+            students.forEach(function(student) {
+                var schedule = student.schedule || [];
+                var statuses = student.lesson_statuses || {};
+                var lessons = generateLessons(schedule, 1);
+                
+                lessons.forEach(function(l) {
+                    var status = statuses[l.id] || LESSON_STATUS.SCHEDULED;
+                    
+                    if (status !== LESSON_STATUS.SCHEDULED) return;
+                    
+                    var lessonDate = lessonToDate(l);
+                    var diffMs = lessonDate.getTime() - now.getTime();
+                    var diffMinutes = Math.floor(diffMs / (1000 * 60));
+                    
+                    if (diffMinutes >= 58 && diffMinutes <= 62) {
+                        var notificationKey = student.id + '_' + l.id;
+                        
+                        if (!sentNotifications[notificationKey]) {
+                            sentNotifications[notificationKey] = true;
+                            
+                            if (student.vk_user_id) {
+                                var message = '🔔 Напоминаем, что через 60 минут начнется занятие по русскому языку в ' + l.time + ' (' + formatDate(l.date) + ')';
+                                sendVkMessage(student.vk_user_id, message);
+                                console.log('📨 Авто-уведомление ученику ' + student.name + ' (' + l.date + ' ' + l.time + ')');
+                            }
+                            
+                            var tutorMessage = '🔔 Напоминание: занятие с ' + student.name + ' в ' + l.time + ' (' + formatDate(l.date) + ')';
+                            sendVkMessage(TUTOR_VK_ID, tutorMessage);
+                        }
+                    }
+                });
+            });
+        }
+
+        var autoReminderInterval = null;
+
+        function startAutoReminders(students) {
+            if (autoReminderInterval) {
+                clearInterval(autoReminderInterval);
+            }
+            
+            setTimeout(function() {
+                checkUpcomingLessons(students);
+            }, 5000);
+            
+            autoReminderInterval = setInterval(function() {
+                checkUpcomingLessons(students);
+            }, 60000);
+            
+            console.log('⏰ Автоматические напоминания запущены');
         }
 
         // ============================================================
@@ -959,7 +1034,7 @@
         }
 
         // ============================================================
-        // 6. КОМПОНЕНТ КАЛЕНДАРЯ
+        // 6. КОМПОНЕНТ КАЛЕНДАРЯ (ИСПРАВЛЕННЫЙ)
         // ============================================================
         function Calendar(props) {
             var students = props.students;
@@ -974,10 +1049,8 @@
             var lastDayOfMonth = new Date(year, month + 1, 0);
             var daysInMonth = lastDayOfMonth.getDate();
             
-            // ПН = 0, ВС = 6
             var startDayOfWeek = getMondayBasedDay(firstDayOfMonth);
 
-            // Собираем все занятия
             var allLessons = {};
             students.forEach(function(student) {
                 var schedule = student.schedule || [];
@@ -987,10 +1060,11 @@
                 lessons.forEach(function(l) {
                     var status = statuses[l.id] || LESSON_STATUS.SCHEDULED;
                     if (status === LESSON_STATUS.SCHEDULED || status === LESSON_STATUS.RESCHEDULED) {
-                        if (!allLessons[l.date]) {
-                            allLessons[l.date] = [];
+                        var dateStr = l.date;
+                        if (!allLessons[dateStr]) {
+                            allLessons[dateStr] = [];
                         }
-                        allLessons[l.date].push({
+                        allLessons[dateStr].push({
                             student: student.name,
                             time: l.time,
                             status: status
@@ -1015,7 +1089,9 @@
 
             for (var d = 1; d <= daysInMonth; d++) {
                 var dateObj = new Date(year, month, d);
-                var dateStr = dateObj.toISOString().slice(0, 10);
+                var dateStr = dateObj.getFullYear() + '-' + 
+                              String(dateObj.getMonth() + 1).padStart(2, '0') + '-' + 
+                              String(dateObj.getDate()).padStart(2, '0');
                 var isToday = dateStr === todayStr;
                 var hasLessons = allLessons[dateStr] && allLessons[dateStr].length > 0;
                 var lessonCount = hasLessons ? allLessons[dateStr].length : 0;
@@ -1188,6 +1264,12 @@
             var editSubscriptionState = React.useState(null);
             var editSubscription = editSubscriptionState[0];
             var setEditSubscription = editSubscriptionState[1];
+
+            React.useEffect(function() {
+                if (students.length > 0) {
+                    startAutoReminders(students);
+                }
+            }, [students]);
 
             async function refreshData() {
                 console.log('🔄 Обновление данных из базы...');
@@ -1505,7 +1587,7 @@
                 setModalLesson(lesson);
             }
 
-            // ===== ВКЛЮЧЕНИЕ НАПОМИНАНИЙ =====
+            // ===== ВКЛЮЧЕНИЕ НАПОМИНАНИЙ (ручное) =====
             async function enableReminders(student) {
                 var lessons = generateLessons(student.schedule || [], 1);
                 var statuses = student.lesson_statuses || {};
@@ -2226,6 +2308,11 @@
                 'div',
                 null,
                 React.createElement('h1', { className: 'title' }, '📚 Репетитор'),
+                React.createElement(
+                    'div',
+                    { className: 'auto-reminder-status' },
+                    '🤖 Автоматические напоминания активны'
+                ),
                 renderAddForm(),
                 React.createElement(
                     Calendar,
